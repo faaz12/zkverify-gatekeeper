@@ -89,11 +89,13 @@ export function createHandler({ hmacSecret, store }) {
       log('no proof for this mode', { taskId, mode: result.mode });
     }
 
-    // Record AFTER the decision (a task that failed HMAC never reaches
-    // here, so it cannot poison the set). Remote append is fire-and-
-    // forget: it must never delay the response.
+    // Record BEFORE responding. The seen-set write must be durable before
+    // the response goes out: Vercel freezes a function right after it
+    // responds, so a fire-and-forget append can be killed mid-retry (and a
+    // lost write means a reused proof_tx is not caught next time). The
+    // write takes ~1s and retries are bounded, far inside the 60s deadline.
     if (response.proof_tx) {
-      store.record(String(taskId), response.proof_tx, response).catch(() => {});
+      await store.record(String(taskId), response.proof_tx, response).catch(() => {});
     }
 
     const bodyStr = JSON.stringify(response);
