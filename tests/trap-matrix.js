@@ -8,15 +8,21 @@
 // Exit 0 = everything passed. Exit 1 = any failure (names printed).
 process.env.STORE_BACKEND = 'memory';
 
+// NOTE: env above must take effect BEFORE the src modules load. Static ESM
+// imports are hoisted and evaluate first, so the src modules are loaded
+// with dynamic imports here (a static import would silently pick up the
+// default GitHub backend and write test entries to the production
+// seen-set file — this exact bug happened on 15 Nov 2026 and polluted
+// data/seen-proofs.jsonl with trap-matrix proof_tx values).
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import * as snarkjs from 'snarkjs';
-import { createServer } from '../src/server.js';
-import { SeenStore } from '../src/store.js';
-import { prove, loadVk } from '../src/prove.js';
-import { signHmac } from '../src/hmac.js';
+
+const { createServer } = await import('../src/server.js');
+const { SeenStore } = await import('../src/store.js');
+const { prove, loadVk } = await import('../src/prove.js');
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const matrix = JSON.parse(fs.readFileSync(path.join(dir, 'trap-matrix.json'), 'utf8'));
