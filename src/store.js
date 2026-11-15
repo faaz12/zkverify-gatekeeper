@@ -173,7 +173,13 @@ export class SeenStore {
           return true;
         } catch (e) {
           const conflict = e.status === 409 || /409|sha|conflict/i.test(String(e.message || ''));
-          if (conflict && attempt < 2) continue;
+          // Back off before retrying: GitHub's contents API can serve a
+          // stale read right after a concurrent PUT, so an immediate retry
+          // re-reads the old sha and 409s again.
+          if (conflict && attempt < 2) {
+            await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+            continue;
+          }
           log('WARNING: remote seen-set append failed (in-memory copy kept)', { error: String(e).slice(0, 200) });
           return false;
         }
