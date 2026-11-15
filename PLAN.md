@@ -257,7 +257,7 @@ Creator Track form (dashboard): category THREAD / VIDEO / ARTICLE / OTHER, title
 ├── api/
 │   └── task.js              # Vercel serverless entry: POST /api/task (+ GET /api/health)
 ├── src/
-│   ├── server.js            # plain-Node HTTP server (local dev + Tailscale fallback path)
+│   └── (moved: scripts/local-server.js — plain-Node HTTP server, local dev + Tailscale fallback)
 │   ├── hmac.js              # verify x-agent-games-signature (incoming) / sign responses (outgoing)
 │   ├── decide.js            # Mode A trap checks + Mode B risk scorer + Mode C fail-closed
 │   ├── prove.js             # snarkjs fullProve wrapper (input validation FIRST, ~10 s budget) + verify
@@ -294,7 +294,7 @@ node tests/prove-valid.js   # must print "fullProve OK" + "verify: OK" (note: pr
 - `src/hmac.js`: `verifyHmac(secret, rawBody, signature)` and `signHmac(secret, rawBody)` — hex HMAC-SHA256; keep the scheme in one place so the variant can be swapped after preflight.
 - `src/prove.js`: build the 13-field circuit input from the task (see §1.3 encoding), validate all fields present, `fullProve` with a 10 s budget (race against a timeout), then `groth16.verify` locally before including the proof (defense: never send a proof that doesn't verify locally).
 - `src/store.js`: seen-set with in-memory Map + persistence (§5.4).
-- `api/task.js` / `src/server.js`: request flow —
+- `api/task.js` / `scripts/local-server.js`: request flow —
   1. read raw body → 2. verify HMAC → 401 if bad (log, no work) → 3. parse JSON → 4. dedupe by `task_id` (return stored response if seen) → 5. decide (Mode A/B/C) → 6. if APPROVE or REJECT-with-checks-passed… actually: generate the proof for the decision in all Mode A cases (the circuit asserts decision correctness, so a correct decision always proves; a wrong decision fails to prove — which is itself a signal to re-check the decision logic) → 7. respond `{decision, reason_code, proof_tx, proof, publicSignals}` signed with `x-agent-games-signature` → 8. background: Kurier submit (if configured) + append `proof_tx` to seen-set + write a JSON log line.
 - `GET /` and `GET /health` → `{ok: true, protocolVersion: "v1"}`.
 - Trap-matrix test: 13 cases in `tests/trap-matrix.json` (valid ×2 decisions, each trap × correct reject, each trap × wrong approve → must fail to prove). All must behave as specified before deploying.
@@ -378,7 +378,7 @@ Built per this plan under `~/workspace/zkverify/gatekeeper/`, repo `faaz12/zkver
 - `src/hmac.js`: hex HMAC-SHA256 verify/sign, scheme in one place (`HMAC_SCHEME` env switches to base64).
 - `src/prove.js`: 13-field input builder with validation FIRST, `encodeTaskId` (numeric passthrough; otherwise decimal of UTF-8 bytes — candidate (a) from §9.1), `fullProve` with 10 s race, local `groth16.verify` before including any proof.
 - `src/store.js`: seen-set, in-memory + GitHub-file (`data/seen-proofs.jsonl`), transports `GITHUB_TOKEN` (fetch) or `gh` CLI; `STORE_BACKEND=memory` for tests. Appends serialised; HMAC-failed tasks never reach it.
-- `src/handler.js` (shared flow) + `src/server.js` (plain-Node, GET `/`/`/health`/`/api/health` → preflight, POST `/task`+`/api/task`) + `api/task.js` (Vercel, `bodyParser: false` for raw-body HMAC), `api/health.js`, `api/index.js` (GET `/` preflight cover).
+- `src/handler.js` (shared flow) + `scripts/local-server.js` (plain-Node, GET `/`/`/health`/`/api/health` → preflight, POST `/task`+`/api/task`) + `api/task.js` (Vercel, `bodyParser: false` for raw-body HMAC), `api/health.js`, `api/index.js` (GET `/` preflight cover).
 - `vercel.json`: `maxDuration: 10`, `includeFiles` placed **inside** the per-function config (the plan's §7 layout showed it top-level; Vercel documents it per-function).
 - `tests/trap-matrix.json`: 13 cases. `tests/trap-matrix.js` harness: 21/21 checks passed (preflight ×3, HMAC 401 ×2, Mode B, Mode C, 7 HTTP trap cases with locally-verified proofs, dedupe, 6 wrong-decision prove failures). Prove latency 87–909 ms (mean 477 ms). `tests/prove-valid.js` re-run (ESM): fullProve 0.9 s, verify OK.
 

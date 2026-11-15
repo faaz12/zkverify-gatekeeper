@@ -1,5 +1,5 @@
 // Shared task-handling flow (PLAN §8 step 2), used by both the local
-// plain-Node server (src/server.js) and the Vercel entry (api/task.js).
+// plain-Node server (scripts/local-server.js) and the Vercel entry (api/task.js).
 //
 // Flow:
 //   1. raw body -> verify HMAC -> 401 if bad (no work, no seen-set poison)

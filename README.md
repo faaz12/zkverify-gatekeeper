@@ -110,7 +110,7 @@ round.
 api/task.js          Vercel entry: POST /api/task, GET preflight
 api/health.js        GET /api/health preflight
 api/index.js         GET / preflight
-src/server.js        plain-Node HTTP server (local dev / Tailscale fallback)
+scripts/local-server.js        plain-Node HTTP server (local dev / Tailscale fallback)
 src/handler.js       shared task flow (HMAC -> dedupe -> decide -> prove -> sign)
 src/decide.js        Mode A trap checks + Mode B scorer + Mode C fail-closed
 src/prove.js         snarkjs fullProve wrapper (validate first, 10 s budget, local verify)

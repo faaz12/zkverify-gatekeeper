@@ -20,7 +20,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import * as snarkjs from 'snarkjs';
 
-const { createServer } = await import('../src/server.js');
+const { createServer } = await import('../scripts/local-server.js');
 const { SeenStore } = await import('../src/store.js');
 const { prove, loadVk } = await import('../src/prove.js');
 

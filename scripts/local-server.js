@@ -11,8 +11,8 @@
 // Env: PORT (default 3000), HMAC_SECRET (required), STORE_BACKEND,
 // STORE_FILE, STORE_REPO (see src/store.js).
 import http from 'node:http';
-import { createHandler, PREFLIGHT } from './handler.js';
-import { SeenStore } from './store.js';
+import { createHandler, PREFLIGHT } from '../src/handler.js';
+import { SeenStore } from '../src/store.js';
 
 export function createServer({ hmacSecret, store, port = 3000 }) {
   const { handleTask } = createHandler({ hmacSecret, store });
