@@ -162,15 +162,23 @@ export class SeenStore {
       ts: new Date().toISOString(),
     });
     this._queue = this._queue.then(async () => {
-      try {
-        const file = await readFile();
-        const next = (file ? file.content.replace(/\n$/, '') + '\n' : '') + line + '\n';
-        await writeFile(next, file ? file.sha : undefined);
-        return true;
-      } catch (e) {
-        log('WARNING: remote seen-set append failed (in-memory copy kept)', { error: String(e).slice(0, 200) });
-        return false;
+      // Retry the read-modify-write on a sha conflict (409): two Vercel
+      // instances can write concurrently, and the second PUT fails on a
+      // stale sha. Re-read fresh and try again (max 3 attempts).
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const file = await readFile();
+          const next = (file ? file.content.replace(/\n$/, '') + '\n' : '') + line + '\n';
+          await writeFile(next, file ? file.sha : undefined);
+          return true;
+        } catch (e) {
+          const conflict = e.status === 409 || /409|sha|conflict/i.test(String(e.message || ''));
+          if (conflict && attempt < 2) continue;
+          log('WARNING: remote seen-set append failed (in-memory copy kept)', { error: String(e).slice(0, 200) });
+          return false;
+        }
       }
+      return false;
     });
     return this._queue;
   }
