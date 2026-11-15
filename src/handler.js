@@ -35,18 +35,24 @@ export function createHandler({ hmacSecret, store }) {
       return { status: 401, body: { error: 'invalid signature' } };
     }
 
+    // The platform's signed preflight probe carries no task_id (and its
+    // exact body shape is undocumented) — it only needs HTTP 200. Any
+    // HMAC-signed request that is not a task IS the preflight: answer it
+    // with the preflight object, signed. Real tasks always carry task_id.
     let envelope;
     try {
       envelope = JSON.parse(rawBody.toString('utf8'));
     } catch {
-      log('invalid JSON body');
-      return { status: 400, body: { error: 'invalid JSON' } };
+      log('signed non-JSON body, answering preflight');
+      const pre = JSON.stringify(PREFLIGHT);
+      return { status: 200, body: PREFLIGHT, signature: signHmac(hmacSecret, Buffer.from(pre)) };
     }
 
     const taskId = envelope.task_id || envelope.taskId;
     if (!taskId) {
-      log('missing task_id');
-      return { status: 400, body: { error: 'missing task_id' } };
+      log('signed request without task_id, answering preflight');
+      const pre = JSON.stringify(PREFLIGHT);
+      return { status: 200, body: PREFLIGHT, signature: signHmac(hmacSecret, Buffer.from(pre)) };
     }
 
     // Idempotency: the platform may retry after a network failure. Return
