@@ -1,0 +1,20 @@
+{
+  "name": "zkverify-gatekeeper",
+  "version": "1.0.0",
+  "description": "zkVerify Agent Games — Proof Gatekeeper agent (Groth16 proof + 7 trap checks)",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "node tests/trap-matrix.js",
+    "start": "node src/server.js",
+    "prove": "node tests/prove-valid.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "snarkjs": "0.7.5"
+  }
+}
