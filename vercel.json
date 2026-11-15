@@ -1,1 +1,1 @@
-{"functions":{"api/task.js":{"includeFiles":"circuits/*","maxDuration":10}}}
+{"builds":[{"src":"api/task.js","use":"@vercel/node"},{"src":"api/health.js","use":"@vercel/node"},{"src":"api/index.js","use":"@vercel/node"}],"functions":{"api/task.js":{"includeFiles":"circuits/*","maxDuration":10}}}
